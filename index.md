@@ -1,37 +1,16 @@
 ## Baran Dogru - IE 360 Coursework
 
-You can use the [editor on GitHub](https://github.com/BU-IE-360/spring20-barandogru/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
+This is a website created by Baran Dogru, displaying the work done in IE 360 - Time Series Analysis and Forecasting course.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### Homeworks
 
-### Markdown
+The homeworks done throughout the course can be found below.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+#### Homework 0
 
-```markdown
-Syntax highlighted code block
+First homework can be seen by clicking [here][files/example_homework_0.html].
 
-# Header 1
-## Header 2
-### Header 3
 
-- Bulleted
-- List
+### Project
 
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/BU-IE-360/spring20-barandogru/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+This part will be updated.
