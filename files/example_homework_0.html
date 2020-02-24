@@ -1650,14 +1650,22 @@ This example is important because it introduces the forecasting methodology usin
 <li>The fifth step can be regarded as the most important step. In this step a proper ARIMA model is fitted to the data.</li>
 <li>Finally, the model should be evaluated by checking whether residuals have any pattern and are normally distributed or not. If there are visible patterns or bias, refitting of the model should get under way. After the model is satisfying, the forecast of the intended period can be done.</li>
 </ul></li>
+</ol>
+<hr />
+<ol start="2" style="list-style-type: decimal">
 <li><p><a href="https://visualstudiomagazine.com/articles/2016/01/01/linear-regression-with-r.aspx">Forecasting with Simple Linear Regression</a></p>
 <p>If you have a data consisting of one independent variable and one dependent variable, one of the most widely used methods of forecasting is Simple Linear Regression. The most simple formula for Simple Linear Regression is as follows:</p>
 <p><span class="math display">\[ y = a~0~ + a~1~*x \]</span></p>
-Again, the first step of fitting a model is to plot and observe if this method can be applied to that data. After the approval of the data <span class="math inline">\(a0\)</span> and <span class="math inline">\(a1\)</span> are estimated by using <code>lm()</code> function. Then, applying the original formula using the intended time period as x value, the forecast can be performed.<br />
-</li>
+<p>Again, the first step of fitting a model is to plot and observe if this method can be applied to that data. After the approval of the data <span class="math inline">\(a0\)</span> and <span class="math inline">\(a1\)</span> are estimated by using <code>lm()</code> function. Then, applying the original formula using the intended time period as x value, the forecast can be performed.</p></li>
+</ol>
+<hr />
+<ol start="3" style="list-style-type: decimal">
 <li><p><a href="https://a-little-book-of-r-for-time-series.readthedocs.io/en/latest/src/timeseries.html#forecasts-using-exponential-smoothing">Simple Exponential Smoothing Technique in R</a></p>
 <p>To apply this method, the data should be at a constant level and have no seasonality. With these assumptions, simple exponential smoothing can be performed by estimating a parameter called alfa. (Parameters beta and gamma has to equal to 0 in this version.) This parameter, alfa, can be estimated by using the function <code>HoltWinters()</code>. After the determination of that parameter, forecasts for further time points can be done by using the <code>forecast.HoltWinters()</code> function in the R <code>forecast</code> package.</p>
 <p>To plot the predictions made by <code>forecast.HoltWinters()</code>, <code>plot.forecast()</code> function can be used. Again, errors can be calculated using the same procedure as indicated above.</p></li>
+</ol>
+<hr />
+<ol start="4" style="list-style-type: decimal">
 <li><p><a href="https://nwfsc-timeseries.github.io/atsa-labs/sec-tslab-random-walks-rw.html">What is a Random Walk and How to Simulate in R?</a></p>
 <p>Random walks are time series data have the following specific properties:</p>
 <ul>
@@ -1669,8 +1677,11 @@ Again, the first step of fitting a model is to plot and observe if this method c
 <p>A discrete white noise series is basically a series where all values are independent and identically distributed (IID) with a mean of zero. The basic formula of the random walk is,</p>
 <p><span class="math display">\[ x~(t)~ = x~(t-1)~ + w~(t)~ \]</span></p>
 <p>Where <span class="math inline">\(w~(t)~\)</span> is the white noise. Random walks can be simulated by using the <code>cumsum(x)</code> function, which does cumulative summation of the vector x over its entire length.</p></li>
+</ol>
+<hr />
+<ol start="5" style="list-style-type: decimal">
 <li><p><a href="http://uc-r.github.io/ts_moving_averages">Fitting a Centered Moving Averages Model in R</a></p>
-<p>In this method, a number of nearby points are chosen and averaged to estimate the trend. This method provides a more stationary model since finding the average of multiple values lowers the erros associated with residuals.</p>
+<p>In this method, a number of nearby points are chosen and averaged to estimate the trend. This method provides a more stationary model since finding the average of multiple values lowers the errors associated with residuals.</p>
 <p>To add a new column of moving averages to the data, <code>mutate()</code> function of <code>dplyr</code> package and <code>rollmean()</code> function of <code>zoo</code> package can be leveraged. After the computations, comparisons can be made by plotting the data and calculating the errors associated with this newly formed column and the original one.</p></li>
 </ol>
 
