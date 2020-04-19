@@ -1,6 +1,6 @@
 ---
-title: "_Analysis on Turkey's Debit/Credit Card Expenditure_"
-author: ""
+title: "Analysis on Turkey's Debit/Credit Card Expenditure"
+author: "Baran Dogru - IE360 - Spring 2020"
 date: ""
 output: 
   bookdown::html_document2:
