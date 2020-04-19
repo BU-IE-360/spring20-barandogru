@@ -1,0 +1,176 @@
+---
+title: "_Analysis on Turkey's Debit/Credit Card Expenditure_"
+author: ""
+date: ""
+output: 
+  bookdown::html_document2:
+    fig_caption: yes
+    number_sections: false
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<!-- # graph example -->
+<!-- ```{r pressure, echo=FALSE, fig.cap='Pressure Plot', fig.align='center'} -->
+<!-- plot(pressure) -->
+<!-- ``` -->
+<!-- As we can see from \@ref(fig:pressure) bal bla bla -->
+
+---------
+
+# Introduction  
+
+The aim of this report is to perform some analysis on the last 6 year's debit/credit card expenditure data which was obtained from the Central Bank of the Republic of Turkey. The following are the datasets that will be used to provide insights:   
+
+1. Total credit/debit card expenditure amount (Thousand TRY)
+2. Total number of credit/debit card transactions
+3. USD/TRY exchange rate
+4. Consumer price index of Turkey
+
+The main goal is to examine the behaviour of the total credit/debit card expenditure amount with the help of other datasets. (All of these data belongs to the Central Bank of the Republic of Turkey.)     
+
+## Preparations  
+
+Preparation part consists of installing the required packages, reading and taking a first look at the data.  
+
+-------
+
+### Installing the packages:  
+
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+# including the required packages
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(xts)
+```
+
+--------
+
+### Reading the data:
+
+```{r, warning=FALSE, error=FALSE, message=FALSE}
+# reading the data
+total_expenditure <- read_xlsx('totalcardexpenditure.xlsx')
+num_transactions <- read_xlsx('totalnumoftransactions.xlsx')
+usd_try <- read_xlsx('usdcurrency.xlsx')
+turkey_cpi <- read_xlsx('turkeycpi.xlsx')
+```  
+
+---------
+
+### First look at the data:  
+
+1. Total credit/debit card expenditure amount (Thousand TRY)  
+
+```{r}
+head(total_expenditure)
+summary(total_expenditure)
+```
+
+2. Total number of credit/debit card transactions 
+
+```{r}
+head(num_transactions)
+summary(num_transactions)
+```
+
+3. USD/TRY exchange rate 
+
+```{r}
+head(usd_try)
+summary(usd_try)
+```
+
+4. Consumer price index of Turkey  
+
+```{r}
+head(turkey_cpi)
+summary(turkey_cpi)
+```  
+
+Here are the problems that draws the attention after the first look into the data:  
+
+* There are some missing values in `total_expenditure` and `num_transactions` datasets at the beginning because their recordings began on 2014-03-07.  
+
+* There are some unnecessary columns in 3 of these datasets.  
+
+* Most of the columns have nonsense names and again most them are not in the right data type.  
+
+* USD-TRY exchange rate data have `NA` values at the weekends.  
+
+To fix these problems some data manipulations have to be done. 
+
+--------
+
+# Data Manipulations  
+
+Data manipulations for each dataset can be found below.  
+
+1. Total credit/debit card expenditure amount (Thousand TRY)  
+
+```{r}
+total_expenditure <- total_expenditure %>%
+                      rename(Date = 'Tarih', Amount = 'TP KKHARTUT KT1') %>%
+                      filter(!is.na(Date) & !is.na(Amount))
+total_expenditure$Date <- as.Date(total_expenditure$Date, format='%d-%m-%Y')
+head(total_expenditure)
+```
+
+2. Total number of credit/debit card transactions 
+
+```{r}
+num_transactions <- num_transactions %>%
+                      rename(Date = 'Tarih', Number = 'TP KKISLADE KA1') %>%
+                      select(Date, Number) %>%
+                      filter(!is.na(Date) & !is.na(Number)) %>%
+                      slice(1:319)
+num_transactions$Date <- as.Date(num_transactions$Date, format='%d-%m-%Y')
+num_transactions$Number <- as.numeric(num_transactions$Number)
+head(num_transactions)
+```
+
+3. USD/TRY exchange rate 
+
+```{r}
+usd_try <- usd_try %>%
+            rename(Date = 'Tarih', Currency = 'TP DK USD A YTL') %>%
+            select(Date, Currency) %>%
+            slice(2:2299) %>%
+            mutate(USDTRY = na.locf(Currency)) %>%
+            select(Date, USDTRY)
+usd_try$Date <- as.Date(usd_try$Date, format='%d-%m-%Y')
+head(usd_try)
+```
+
+4. Consumer price index of Turkey  
+
+```{r}
+turkey_cpi <- turkey_cpi %>%
+            rename(Date = 'Tarih', CPI = 'TP FG J0') %>%
+            select(Date, CPI) %>%
+            slice(1:75)
+turkey_cpi$Date <- as.yearmon(turkey_cpi$Date, format='%Y-%m')
+turkey_cpi$CPI <- as.numeric(turkey_cpi$CPI)
+head(turkey_cpi)
+```  
+
+At this moment datasets are ready to be used for the analysis.    
+
+--------
+
+# Analysis  
+
+
+
+
+
+
+
+
+
