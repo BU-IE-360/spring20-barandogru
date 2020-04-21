@@ -166,10 +166,176 @@ At this moment datasets are ready to be used for the analysis.
 
 # Analysis  
 
+## Number of Transactions Made  
 
+The first question that can be answered in this analysis is that whether there is a positive correlation between the amount spent and the number of transactions. Firstly, these two variables have to be plotted together. To achieve that these two data frames should be merged.  
 
+```{r}
+amount_with_transactions <- merge(total_expenditure, num_transactions, by = 'Date')
+amount_with_transactions <- amount_with_transactions %>%
+                        mutate(Amount_Per_Transaction = Amount * 1000 / Number)
+```
 
+There is also a new column called `Amount_Per_Transaction` which represents the average amount spent per transaction.   
 
+This data frame should be converted to an xts object.  
+
+```{r}
+amount_transaction_xts <- xts(select(amount_with_transactions, -c(Date)), 
+                              order.by = amount_with_transactions$Date)
+```
+
+Now, the the object is ready to be plotted.  
+
+```{r fig1, echo=FALSE, fig.cap='Amount vs Count', fig.align='center'}
+ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
+  theme_minimal() +
+  geom_line(aes(y = Amount, color='Amount (1000 TL)')) +
+  geom_line(aes(y = Number, color='Count')) +
+  scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
+  theme(axis.text.x = element_text(angle=45), legend.position = 'bottom') +
+  labs(x = 'Date', y = 'Total Expenditure', 
+       title = 'Total Expenditure Amount vs # of Transactions') +
+  scale_color_manual(name = "Transaction", 
+                     values = c("Amount (1000 TL)" = "lightblue", "Count" = "darkred"))
+```  
+
+By looking at the Figure \@ref(fig:fig1), one can conclude that both of these variables tend to have a positive trend throughout this period. The correlation between these two variables are:  
+
+```{r}
+cor(amount_transaction_xts$Amount, amount_transaction_xts$Number)
+```  
+
+This value shows that there is a highly positive correlation between these two.  
+
+One last interesting insight from this part is to check whether average amount spent per transaction is increasing or not. The plot for this variable:
+
+```{r fig2, echo=FALSE, fig.cap='Money Spent per Transaction', fig.align='center'}
+ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
+  theme_minimal() +
+  geom_line(aes(y = Amount_Per_Transaction)) +
+  scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
+  theme(axis.text.x = element_text(angle=45)) +
+  labs(x = 'Date', y = 'Expenditure (TL)', 
+       title = 'Average Expenditure Amount per Transaction') 
+```  
+
+By looking at the Figure \@ref(fig:fig2), there seems to be an upwards trend over time.  
+
+--------
+
+## USD/TRY Exchange Rate  
+
+Firstly, xts objects corresponding to total expenditure amount and USD-TRY exchange rate datasets should be created.  
+
+```{r}
+expenditure_xts <- xts(select(total_expenditure, Amount), order.by = total_expenditure$Date)
+usdtry_xts <- xts(select(usd_try, USDTRY), order.by = usd_try$Date)
+```
+
+To have a look at these objects,  
+
+```{r}
+head(expenditure_xts)
+head(usdtry_xts)
+```  
+
+As one can see, `expenditure_xts` is a weekly data however `usdtry_xts` is a daily one. To be able to merge these objects, they have to have the same indices. To achieve that daily data can be averaged for each week,  
+
+```{r}
+index(expenditure_xts) <- index(expenditure_xts) + 2
+usdtry_xts <- usdtry_xts['2014-03-07/2020-04-10']
+ep <- endpoints(usdtry_xts, on='weeks')
+usdtry_weekly_xts <- period.apply(usdtry_xts, INDEX = ep, FUN = mean)
+```  
+
+One final look to objects,  
+
+```{r}
+head(expenditure_xts)
+head(usdtry_xts)
+```  
+
+So, these objects are now ready to be merged.  
+
+```{r}
+amount_with_exchange <- merge(expenditure_xts, usdtry_weekly_xts, join = 'inner')
+```
+
+Final table shapes up like this,
+
+```{r}
+head(amount_with_exchange)
+```
+
+Since these two variables differ so much from each other, it would not be an healthy approach to plot them in the same figure. However, correlation can be examined.  
+
+```{r}
+cor(amount_with_exchange$Amount, amount_with_exchange$USDTRY)
+```  
+
+Again, these two variables seems to be highly positively correlated.  
+
+---------
+
+## Consumer Price Index  
+
+Object of interest in this part is to examine the relationship between the credit/debit card total expenditure amount and consumer price index of Turkey. Since CPI is a monthly data, expenditure amount should also be converted into monthly data points.  
+
+```{r}
+# creating monthly expenditure xts object
+expenditure_monthly <- apply.monthly(expenditure_xts, FUN = mean, indexAt='yearmon')
+index(expenditure_monthly) <- as.yearmon(index(expenditure_monthly))
+
+# creating consumer price index xts object
+cpi_xts <- xts(select(turkey_cpi, CPI), order.by = turkey_cpi$Date)
+```  
+
+The first look into the data,  
+
+```{r}
+head(expenditure_monthly)
+head(cpi_xts)
+```  
+
+Since these objects have different starting and ending points, they both have to trimmed.  
+
+```{r}
+expenditure_monthly <- expenditure_monthly['2014-03-01/2020-03-31']
+cpi_xts <- cpi_xts['2014-03-01/2020-03-31']
+```
+
+Now these xts objects are ready to be merged.  
+
+```{r}
+amount_with_cpi <- merge(expenditure_monthly, cpi_xts)
+```  
+
+Final state of the table:  
+
+```{r}
+head(amount_with_cpi)
+```  
+
+Again, since the values of these two variables differ by a great amount, it would not make much sense to plot them in the same graph. However, correlation should be calculated:  
+
+```{r}
+cor(amount_with_cpi$Amount, amount_with_cpi$CPI)
+```  
+
+It seems like there is also a highly positive correlation between credit/debit card expenditure amount and consumer price index.  
+
+------
+
+# Key Takeaways  
+
+* Credit/debit card total expenditure amount over the last 6 years is highly positively correlated with the number of transactions made as expected.  
+
+* Average money spent per each credit/debit card transaction has had an upwards trend in the last 6 years.  
+
+* There is a positive relationship between credit/debit card total expenditure amount and USD-TRY exchange rate.  
+
+* Consumer price index has also positively affected credit/debit card total expenditure amount over the last 6 years.  
 
 
 
