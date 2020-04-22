@@ -24,7 +24,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction  
 
-The aim of this report is to perform some analysis on the last 6 year's debit/credit card expenditure data which was obtained from the Central Bank of the Republic of Turkey. The following are the datasets that will be used to provide insights:   
+The aim of this report is to perform some analysis on the last 6 year's debit/credit card expenditure data which was obtained from the Central Bank of the Republic of Turkey. The source code can be found [here][source].  
+
+The following are the datasets that will be used to provide insights:   
 
 1. Total credit/debit card expenditure amount (Thousand TRY)
 2. Total number of credit/debit card transactions
@@ -338,5 +340,5 @@ It seems like there is also a highly positive correlation between credit/debit c
 * Consumer price index has also positively affected credit/debit card total expenditure amount over the last 6 years.  
 
 
-
+[source]: https://github.com/BU-IE-360/spring20-barandogru/tree/master/HW1 {target="_blank"}
 
