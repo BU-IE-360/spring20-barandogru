@@ -65,61 +65,61 @@ turkey_cpi$CPI <- as.numeric(turkey_cpi$CPI)
 # cpi_xts <- xts(select(turkey_cpi, CPI), order.by = turkey_cpi$Date)
 # usdtry_xts <- xts(select(usd_try, USDTRY), order.by = usd_try$Date)
 
-# # Number of transactions vs total flow amount
-# amount_with_transactions <- merge(total_expenditure, num_transactions, by = 'Date')
-# amount_with_transactions <- amount_with_transactions %>%
-#                         mutate(Amount_Per_Transaction = Amount * 1000 / Number)
-# amount_vs_transactions <- amount_with_transactions %>%
-#                  gather(key = 'Type', value = 'Transaction', c(Amount, Number)) %>%
-#                  select(-Amount_Per_Transaction) %>%
-#                  arrange(Date)
-#
-# amount_transaction_xts <- xts(select(amount_with_transactions, -c(Date)),
-#                               order.by = amount_with_transactions$Date)
-#
-# ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
-#   theme_minimal() +
-#   geom_line(aes(y = Amount, color='Amount (1000 TL)')) +
-#   geom_line(aes(y = Number, color='Count')) +
-#   scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
-#   theme(axis.text.x = element_text(angle=45), legend.position = 'bottom') +
-#   labs(x = 'Date', y = 'Total Expenditure',
-#        title = 'Total Expenditure Amount vs # of Transactions') +
-#   scale_color_manual(name = "Transaction",
-#                      values = c("Amount (1000 TL)" = "lightblue", "Count" = "darkred"))
-#
-# ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
-#   theme_minimal() +
-#   geom_line(aes(y = Amount_Per_Transaction)) +
-#   scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
-#   theme(axis.text.x = element_text(angle=45)) +
-#   labs(x = 'Date', y = 'Expenditure (TL)',
-#        title = 'Average Expenditure Amount per Transaction')
-#
-# cor(amount_transaction_xts$Amount, amount_transaction_xts$Number)
+# Number of transactions vs total flow amount
+amount_with_transactions <- merge(total_expenditure, num_transactions, by = 'Date')
+amount_with_transactions <- amount_with_transactions %>%
+                        mutate(Amount_Per_Transaction = Amount * 1000 / Number)
+amount_vs_transactions <- amount_with_transactions %>%
+                 gather(key = 'Type', value = 'Transaction', c(Amount, Number)) %>%
+                 select(-Amount_Per_Transaction) %>%
+                 arrange(Date)
+
+amount_transaction_xts <- xts(select(amount_with_transactions, -c(Date)),
+                              order.by = amount_with_transactions$Date)
+
+ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
+  theme_minimal() +
+  geom_line(aes(y = Amount, color='Amount (1000 TL)')) +
+  geom_line(aes(y = Number, color='Count')) +
+  scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
+  theme(axis.text.x = element_text(angle=45), legend.position = 'bottom') +
+  labs(x = 'Date', y = 'Total Expenditure',
+       title = 'Total Expenditure Amount vs # of Transactions') +
+  scale_color_manual(name = "Transaction",
+                     values = c("Amount (1000 TL)" = "lightblue", "Count" = "darkred"))
+
+ggplot(amount_transaction_xts, aes(x = index(amount_transaction_xts))) +
+  theme_minimal() +
+  geom_line(aes(y = Amount_Per_Transaction)) +
+  scale_x_date(breaks = '6 months', date_labels = '%b %Y') +
+  theme(axis.text.x = element_text(angle=45)) +
+  labs(x = 'Date', y = 'Expenditure (TL)',
+       title = 'Average Expenditure Amount per Transaction')
+
+cor(amount_transaction_xts$Amount, amount_transaction_xts$Number)
 
 
-# # Total amount spent vs cpi
-# total_expenditure_monthly <- total_expenditure %>%
-#                               mutate(Month = month(Date), Year = year(Date)) %>%
-#                               group_by(Year, Month) %>%
-#                               summarise(Avg_Expen = mean(Amount)) %>%
-#                               ungroup()
-# total_expenditure_monthly <- total_expenditure_monthly %>%
-#                               mutate(Date = as.yearmon(paste(total_expenditure_monthly$Year, '-',
-#                                                              total_expenditure_monthly$Month),
-#                                                        format='%Y-%m')) %>%
-#                               select(c(Date, Avg_Expen))
+# Total amount spent vs cpi
+total_expenditure_monthly <- total_expenditure %>%
+                              mutate(Month = month(Date), Year = year(Date)) %>%
+                              group_by(Year, Month) %>%
+                              summarise(Avg_Expen = mean(Amount)) %>%
+                              ungroup()
+total_expenditure_monthly <- total_expenditure_monthly %>%
+                              mutate(Date = as.yearmon(paste(total_expenditure_monthly$Year, '-',
+                                                             total_expenditure_monthly$Month),
+                                                       format='%Y-%m')) %>%
+                              select(c(Date, Avg_Expen))
 
-# expenditure_xts <- xts(select(total_expenditure, Amount), order.by = total_expenditure$Date)
-# usdtry_xts <- xts(select(usd_try, USDTRY), order.by = usd_try$Date)
-# index(expenditure_xts) <- index(expenditure_xts) + 2
-# usdtry_xts <- usdtry_xts['2014-03-07/2020-04-10']
-# ep <- endpoints(usdtry_xts, on='weeks')
-# usdtry_weekly_xts <- period.apply(usdtry_xts, INDEX = ep, FUN = mean)
-# amount_with_exchange <- merge(expenditure_xts, usdtry_weekly_xts, join = 'inner')
-#
-# cor(amount_with_exchange$Amount, amount_with_exchange$USDTRY)
+expenditure_xts <- xts(select(total_expenditure, Amount), order.by = total_expenditure$Date)
+usdtry_xts <- xts(select(usd_try, USDTRY), order.by = usd_try$Date)
+index(expenditure_xts) <- index(expenditure_xts) + 2
+usdtry_xts <- usdtry_xts['2014-03-07/2020-04-10']
+ep <- endpoints(usdtry_xts, on='weeks')
+usdtry_weekly_xts <- period.apply(usdtry_xts, INDEX = ep, FUN = mean)
+amount_with_exchange <- merge(expenditure_xts, usdtry_weekly_xts, join = 'inner')
+
+cor(amount_with_exchange$Amount, amount_with_exchange$USDTRY)
 
 expenditure_monthly <- apply.monthly(expenditure_xts, FUN = mean, indexAt='yearmon')
 index(expenditure_monthly) <- as.yearmon(index(expenditure_monthly))

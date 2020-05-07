@@ -1,0 +1,346 @@
+---
+title: "Forecasting Electricity Consumption with AR & MA Models"
+author: "Baran Dogru - IE360 - Spring 2020"
+date: ""
+output: 
+  bookdown::html_document2:
+    fig_caption: yes
+    number_sections: false
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<!-- # graph example -->
+<!-- ```{r pressure, echo=FALSE, fig.cap='Pressure Plot', fig.align='center'} -->
+<!-- plot(pressure) -->
+<!-- ``` -->
+<!-- As we can see from \@ref(fig:pressure) bal bla bla -->
+
+---------
+
+# Introduction  
+
+The aim of this report is to perform some analysis on the electricity consumption data of Turkey, to fit AR & MA models to the data and finally to provide 24 hour ahead forecasts. The data used belongs to EPIAS (Enerji Piyasalari Isletme A.S).  
+
+The source code can be found [here][source].  
+
+## Preparations  
+
+Preparation part consists of installing the required packages, reading and taking a first look at the data.  
+
+-------
+
+### Installing the packages:  
+
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+# requiring the necessary packages
+library(dplyr)
+library(ggplot2)
+library(ggfortify)
+library(lubridate)
+library(forecast)
+library(timeSeries)
+library(zoo)
+```
+
+--------
+
+### Reading the data:
+
+```{r, warning=FALSE, error=FALSE, message=FALSE}
+# reading the data
+df <- read.csv('gercek_tuketim.csv', sep = '"', header = TRUE)
+```  
+
+---------
+
+### First look at the data:  
+
+```{r}
+head(df)
+```
+
+
+Here are the problems that draws the attention after the first look into the data:  
+
+* The date and hour columns have to be merged.  
+
+* There are several nonsense columns.  
+
+* Some renaming and formatting has to be done.  
+
+To solve these problems, some data manpulation had to be done.  
+
+--------
+
+# Data Manipulations  
+
+Data manipulations for the dataset can be found below.  
+
+
+```{r}
+# tidying the data
+df <- df %>% 
+  select(c('Tarih.', 'Saat', 'Tuketim.Miktari..MWh.')) %>%
+  rename(Date = 'Tarih.', Hour = 'Saat', Consumption = 'Tuketim.Miktari..MWh.') 
+
+df$Date <- gsub(",", "", df$Date)
+df$Consumption <- as.numeric(gsub(",", ".", gsub("\\.", "", df$Consumption)))
+
+df <- df %>%
+  mutate(Datetime = as.POSIXct(paste(df$Date, df$Hour),format="%d.%m.%Y %H:%M"), 'GMT') %>%
+  select(Datetime, Consumption)
+```
+
+Let's have a look at the final version of the table.  
+
+```{r}
+head(df)
+```
+
+At this moment dataset is ready to be used for the analysis.    
+
+--------
+
+# Analysis  
+
+Before starting to analyze the underlying trends and seasonalities in the data, something caught my attention while I was trying to plot the data. Although I downloaded the data directly from EPIAS, there was a missing day. To find the missing day, I wrote the following piece of code:  
+
+```{r}
+# missing data
+missing_day <- setdiff(seq(as.Date('2016-01-01'),as.Date('2020-04-26'), by=1), as_date(df$Datetime))
+as.Date(missing_day, origin="1970-01-01")
+```  
+
+As you can see, the data corresponding the day '27-03-2016' is missing. After this fun fact, we can begin with the analysis.  
+
+------------
+
+## Plotting the Data  
+
+Before decomposing the data and fitting any models to it, we should examine the trends and seasonalities by plotting the data in different ways. 
+
+First of all, to plot the hourly consumption data:  
+
+```{r fig1, echo=FALSE, fig.cap='Hourly Consumption', fig.align='center'}
+# actual hourly data
+ggplot(df, aes(x=df$Datetime, df$Consumption)) +
+  theme_minimal() +
+  geom_line(color='red', alpha=0.5) + 
+  scale_x_datetime(breaks = '3 months', date_labels = "%b %Y") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = 'Date', 
+       y = 'Consumption (MWh)', 
+       title = "Turkey's Electricity Consumption")
+``` 
+
+By looking at the Figure \@ref(fig:fig1), there seems to be some seasonality, however, to understand better we need more plots. Let's see the daily average values on a plot.  
+
+```{r fig2, echo=FALSE, fig.cap='Daily Consumption', fig.align='center'}
+df %>% 
+  group_by(as_date(Datetime)) %>%
+  summarise(Consumption = mean(Consumption)) %>%
+  ggplot(aes(x=`as_date(Datetime)`, y=Consumption)) +
+    theme_minimal() +
+    geom_line(color='red', alpha=0.5) +
+    scale_x_date(breaks = '3 months', date_labels = "%b %Y") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(x = 'Date', 
+         y = 'Consumption (MWh)', 
+         title = 'Daily Average Consumption')
+``` 
+
+Let's also plot monthly averages for a cleaner plot.  
+
+```{r fig3, echo=FALSE, fig.cap='Monthly Consumption', fig.align='center'}
+monthly <- df %>%
+  group_by(year(Datetime), month(Datetime)) %>%
+  summarise(Consumption = mean(Consumption)) %>%
+  ungroup() %>%
+  mutate(Date = as.yearmon(paste(`year(Datetime)`, `month(Datetime)`, sep = ' '), 
+                           format = '%Y %m'))
+
+ggplot(monthly, aes(x=monthly$Date, y=monthly$Consumption)) +
+  theme_minimal() +
+  geom_line(color='red', alpha=0.5) +
+  scale_x_yearmon(format = "%b %Y", n=9) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = 'Date', 
+       y = 'Consumption (MWh)', 
+       title = 'Monthly Average Consumption')
+``` 
+
+By looking at this plot, we can say that electricity consumption in Turkey tends to increase in January and June, however, it tends to decrease in October.  
+
+These graphs did give us a better understanding of the data, however, to better understand the seasonalities in the data, we need more graphs.  
+
+Let's see how consumption behaves in different hours of a day:  
+
+```{r fig4, echo=FALSE, fig.cap='Consumption in Different Hours', fig.align='center'}
+hour_of_day <- df %>%
+  group_by(hour(Datetime)) %>%
+  summarise(Consumption = mean(Consumption))
+
+ggplot(hour_of_day, aes(x=`hour(Datetime)`, y=Consumption)) +
+  theme_minimal() +
+  geom_line(color='red', alpha=0.5) +
+  geom_point(color='red') +
+  scale_x_continuous(breaks = seq(0,23,1)) +
+  labs(x = 'Hours', 
+       y = 'Consumption (MWh)', 
+       title = 'Average Consumption by Hours of a Day')
+``` 
+
+As wee can see from Figure \@ref(fig:fig4), the consumption decreases drastically between 11pm and 6 am.  
+
+Similarly, let's plot how consumption behaves in different days of a week.  
+
+```{r fig5, echo=FALSE, fig.cap='Consumption in Different Days', fig.align='center'}
+day_of_week <- df %>%
+  group_by(wday(Datetime, label = TRUE, week_start = 1)) %>%
+  summarise(Consumption = mean(Consumption)) %>%
+  rename(Day = 1) %>%
+  ungroup()
+
+ggplot(day_of_week, aes(x=day_of_week$Day, y=day_of_week$Consumption)) +
+  theme_minimal() +
+  geom_line(aes(group = 1), color='red', alpha=0.5) +
+  geom_point(color='red') +
+  labs(x = 'Days', 
+       y = 'Consumption (MWh)', 
+       title = 'Average Consumption by Days of a Week')
+``` 
+
+We can clearly see that consumption level decreases on Saturday and Sunday by looking at the Figure \@ref(fig:fig5).  
+
+Finally, let's see how consumption behaves in different months of a year.  
+
+```{r fig6, echo=FALSE, fig.cap='Consumption in Different Months', fig.align='center'}
+month_of_year <- df %>%
+  group_by(month(Datetime)) %>%
+  summarise(Consumption = mean(Consumption))
+
+ggplot(month_of_year, aes(x=`month(Datetime)`, y=Consumption)) +
+  theme_minimal() +
+  geom_line(color='red', alpha=0.5) +
+  geom_point(color='red') +
+  scale_x_continuous(breaks = seq(1,12,1)) +
+  labs(x = 'Month', 
+       y = 'Consumption (MWh)', 
+       title = 'Average Consumption by Months of a Year')
+``` 
+
+Again, consumption seems to increase in January, July and August and seems to decrease in April and October.  
+
+Now it is time to decompose the time series data and fit two models to it.  
+
+---------
+
+## Decomposing the Data  
+
+Since hourly data generally have a daily seasonality, a weekly seasonality and an annual seasonality, I have chosen to create an `forecast::msts` object which is and extended version of `forecast::ts` object which allows multiple seasonal periods as input. More about `forecast::msts` object can be found [here][msts].  
+
+```{r fig7, echo=FALSE, fig.cap='Creation of msts Object', fig.align='center'}
+# hourly data converted to ts object
+consumption <- msts(df$Consumption, start = c(2016,1), seasonal.periods = c(24,168,8760))
+consumption %>%
+  autoplot() +
+  xlab('Date') +
+  ylab('') +
+  ggtitle("Turkey's Electricity Consumption")
+```
+
+Now we can deasonalize the data using the `forecast::mstl()` function. `forecast::mstl()` function is also the multiple seasons version of the `forecast::stl()` function.  
+
+Let's see the components of the data:  
+
+```{r fig8, echo=FALSE, fig.cap='Components of Data', fig.align='center'}
+components <- mstl(consumption, lambda = 'auto')
+autoplot(components)
+```
+
+Now to remove the seasonal and trend components from the data, let's use `forecast::seasadj()` function to remove the seasonal components and differencing multiple times to remove the trend.  
+
+```{r fig9, echo=FALSE, fig.cap='Stationary Version of Data', fig.align='center'}
+# seasonal adjustment
+cons_sa <- seasadj(components)
+
+# removing the trend
+seas_diff = diff(diff(diff(diff(log(cons_sa), 8760), 168), 24),1)
+
+# plotting the final version
+autoplot(seas_diff)
+```
+
+Now the data seems to be stationary after all of these steps and it is time to fit the models.  
+
+## Fitting the Models  
+
+### AR Model  
+
+After multiple tries, I decided to use an ARIMA(8,0,0) model which gave me the lowest AIC value.  
+
+```{r}
+fit_AR <- Arima(consumption, order = c(8, 0, 0))
+```
+
+Let's see the model's properties:  
+
+```{r}
+fit_AR
+```  
+
+Let's plot the fitted model on top of the actual data.  
+
+```{r fig10, echo=FALSE, fig.cap='AR Model Fitted', fig.align='center'}
+cbind(consumption, fitted(fit_AR)) %>%
+  autoplot(alpha=0.5)
+```
+
+### MA Model
+
+After multiple tries, I decided to use an ARIMA(0,0,8) model which gave me the lowest AIC value.  
+
+```{r}
+fit_MA <- Arima(consumption, order = c(0, 0, 8))
+```
+
+Let's see the model's properties:  
+
+```{r}
+fit_MA
+```  
+
+Let's plot the fitted model on top of the actual data.  
+
+```{r fig11, echo=FALSE, fig.cap='MA Model Fitted', fig.align='center'}
+cbind(consumption, fitted(fit_MA)) %>%
+  autoplot(alpha=0.5)
+```
+
+----------
+
+## Forecasting  
+
+Since AR model gives us as lower AIC value, I am going to make the 24 ahead forecasts with the AR model.  
+
+```{r fig12, echo=FALSE, fig.cap='MA Model Fitted', fig.align='center'}
+forecast(fit_AR, level = c(95), h = 24) %>%
+  autoplot(include=168)
+```
+
+Figure \@ref(fig:fig12) displays the 24 hour forecasts along with the past 7 days' data.  
+
+------
+
+# Summary 
+
+In this report, the electricity consumption data was examined, decomposed and used for fitting AR and MA models. The AR model found to be better between the two and was chosen to provide forecasts with. The nature of these algorithms prevented better forecasts however using ARIMA models with all 3 parameters might provide better forecasts.   
+
+
+[source]: https://github.com/BU-IE-360/spring20-barandogru/tree/master/HW2 {target="_blank"}
+[msts]: https://robjhyndman.com/hyndsight/seasonal-periods/ {target="_blank"}
